@@ -15,39 +15,60 @@
   <button onclick="checkSSL()">Check SSL</button>
 
   <!-- RESULT -->
-  <div id="result"></div>
+  <div id="result" style="margin-top:20px;"></div>
 
-  <!-- SCRIPT (IMPORTANT: must be inside script tag) -->
+  <!-- SCRIPT -->
   <script>
+    let currentDomain = "";
+
     async function checkSSL() {
-      const domain = document.getElementById("domain").value.trim();
+      const inputDomain = document.getElementById("domain").value.trim();
       const resultDiv = document.getElementById("result");
 
-      if (!domain) {
+      // Store domain only once
+      if (inputDomain) {
+        currentDomain = inputDomain;
+      }
+
+      if (!currentDomain) {
         resultDiv.innerHTML = "Please enter a domain.";
         return;
       }
 
-      resultDiv.innerHTML = "Checking SSL...";
+      resultDiv.innerHTML = "🔄 Checking SSL...";
 
       try {
-        const response = await fetch(`https://sslcheckerproject1.vercel.app/api/check-ssl?domain=${domain}`);
+        const response = await fetch(`https://sslcheckerproject1.vercel.app/api/check-ssl?domain=${currentDomain}`);
+
+        if (!response.ok) {
+          throw new Error("API error");
+        }
+
         const data = await response.json();
 
+        // 🔄 Retry if still scanning
         if (data.status === "PENDING" || data.status === "SCANNING") {
-          resultDiv.innerHTML = "Scanning... please wait.";
+          resultDiv.innerHTML = "🔄 Scanning in progress... retrying in 5 seconds...";
+          setTimeout(checkSSL, 5000);
           return;
         }
 
+        // ✅ Final output
         resultDiv.innerHTML = `
-          Domain: ${data.domain}<br>
-          Grade: ${data.grade}<br>
-          Issuer: ${data.issuer}<br>
-          Trust: ${data.trusted ? "Trusted" : "Not Trusted"}
+          <strong>Domain:</strong> ${data.domain}<br>
+          <strong>Grade:</strong> ${data.grade}<br>
+          <strong>Issuer:</strong> ${data.issuer}<br>
+          <strong>Valid From:</strong> ${new Date(data.valid_from).toDateString()}<br>
+          <strong>Valid To:</strong> ${new Date(data.valid_to).toDateString()}<br>
+          <strong>Trust:</strong> ${data.trusted ? "✅ Trusted" : "❌ Not Trusted"}<br>
+
+          <br><strong>🔗 Chain of Trust:</strong><br>
+          ${data.chain}
         `;
 
       } catch (err) {
-        resultDiv.innerHTML = "Error connecting to backend.";
+        resultDiv.innerHTML = "⚠️ Temporary issue... retrying...";
+        setTimeout(checkSSL, 5000);
       }
     }
   </script>
