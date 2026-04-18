@@ -1,43 +1,41 @@
-export default async function handler(req, res) {
-  const domain = req.query.domain;
+<script>
+async function checkSSL() {
+  const domain = document.getElementById("domain").value.trim();
+  const resultDiv = document.getElementById("result");
 
   if (!domain) {
-    return res.status(400).json({ error: "Domain required" });
+    resultDiv.innerHTML = "Please enter a domain.";
+    return;
   }
+
+  resultDiv.innerHTML = "🔄 Checking SSL...";
 
   try {
-    const apiURL = `https://api.ssllabs.com/api/v3/analyze?host=${domain}&all=done`;
-
-    const response = await fetch(apiURL);
+    const response = await fetch(`https://sslcheckerproject1.vercel.app/api/check-ssl?domain=${domain}`);
     const data = await response.json();
 
-    if (!data.endpoints || data.endpoints.length === 0) {
-      return res.json({ status: "PENDING" });
+    // 🔁 If still scanning → retry automatically
+    if (data.status === "PENDING" || data.status === "SCANNING") {
+      resultDiv.innerHTML = "🔄 Scanning in progress... retrying in 5 seconds...";
+      setTimeout(() => checkSSL(), 5000);
+      return;
     }
 
-    const endpoint = data.endpoints[0];
-    const cert = endpoint.details?.cert;
+    // ✅ Final result
+    resultDiv.innerHTML = `
+      <strong>Domain:</strong> ${data.domain}<br>
+      <strong>Grade:</strong> ${data.grade}<br>
+      <strong>Issuer:</strong> ${data.issuer}<br>
+      <strong>Valid From:</strong> ${new Date(data.valid_from).toDateString()}<br>
+      <strong>Valid To:</strong> ${new Date(data.valid_to).toDateString()}<br>
+      <strong>Trust:</strong> ${data.trusted ? "✅ Trusted" : "❌ Not Trusted"}<br>
 
-    // If cert details not ready yet
-    if (!cert) {
-      return res.json({ status: "SCANNING" });
-    }
+      <br><strong>🔗 Chain of Trust:</strong><br>
+      ${data.chain}
+    `;
 
-    return res.status(200).json({
-      domain: domain,
-      grade: endpoint.grade || "N/A",
-      ip: endpoint.ipAddress,
-      issuer: cert.issuerLabel,
-      valid_from: cert.notBefore,
-      valid_to: cert.notAfter,
-      trusted: endpoint.grade ? true : false,
-      chain: "Root CA → Intermediate CA → Server Certificate"
-    });
-
-  } catch (error) {
-    return res.status(500).json({
-      error: "Backend error",
-      details: error.message
-    });
+  } catch (err) {
+    resultDiv.innerHTML = "Error connecting to backend.";
   }
 }
+</script>
