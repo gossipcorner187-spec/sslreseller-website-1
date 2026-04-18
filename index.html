@@ -1,7 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>My Website</title>
+  <title>SSL & Post-Quantum Security Check</title>
+
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -11,81 +12,157 @@
       text-align: center;
     }
 
+    .container {
+      max-width: 700px;
+      margin: auto;
+    }
+
     .card {
       background: white;
       padding: 25px;
       border-radius: 12px;
-      display: inline-block;
-      max-width: 650px;
       box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
     }
 
-    .ssl-box {
+    input {
+      width: 80%;
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+    }
+
+    button {
+      margin-top: 15px;
+      padding: 10px 20px;
+      border: none;
+      background: #4caf50;
+      color: white;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+
+    .result {
       margin-top: 20px;
-      padding: 15px;
-      border: 2px dashed #4caf50;
-      border-radius: 10px;
-      background: #eaffea;
+      text-align: left;
+      font-size: 14px;
     }
 
-    .lock {
-      font-size: 40px;
-    }
-
-    .title {
-      font-size: 28px;
-      font-weight: bold;
-    }
-
-    .subtitle {
-      color: #555;
-    }
-
-    .section {
-      margin-top: 25px;
+    .quantum {
       text-align: left;
     }
 
-    .tag {
-      display: inline-block;
-      background: #e3f2fd;
-      padding: 5px 10px;
-      border-radius: 20px;
-      font-size: 12px;
-      margin-top: 10px;
+    .cta {
+      background: #1a73e8;
+      color: white;
+      padding: 20px;
+      border-radius: 10px;
+    }
+
+    .cta button {
+      background: white;
+      color: #1a73e8;
+      font-weight: bold;
+    }
+
+    .lock {
+      font-size: 30px;
     }
   </style>
 </head>
 
 <body>
 
+<div class="container">
+
+  <!-- SSL CHECKER -->
   <div class="card">
-    <div class="title">Welcome to My Website</div>
-    <p class="subtitle">This is my first interface on GitHub.</p>
+    <div class="lock">🔐</div>
+    <h2>SSL Security Checker</h2>
+    <p>Check the security posture of any website</p>
 
-    <!-- SSL VISUAL -->
-    <div class="ssl-box">
-      <div class="lock">🔐</div>
-      <strong>SSL Secured Connection</strong>
-      <p style="margin:5px;">Encrypted using HTTPS (TLS)</p>
-      <span class="tag">Secure Channel Active</span>
-    </div>
+    <input type="text" id="domain" placeholder="Enter domain (example.com)">
+    <br>
+    <button onclick="checkSSL()">Check SSL</button>
 
-    <!-- POST QUANTUM SECTION -->
-    <div class="section">
-      <h3>Post-Quantum Cryptography</h3>
-      <p>
-        Post-quantum cryptography refers to cryptographic algorithms that are designed
-        to be secure against attacks from quantum computers. Unlike traditional encryption
-        methods like RSA and ECC, which could be broken by quantum algorithms such as Shor’s algorithm,
-        post-quantum systems rely on mathematical problems that remain hard even for quantum machines.
-      </p>
-      <p>
-        This is becoming increasingly important as future quantum computers may threaten current SSL/TLS security systems.
-      </p>
-    </div>
-
+    <div class="result" id="result"></div>
   </div>
+
+  <!-- QUANTUM AWARENESS -->
+  <div class="card quantum">
+    <h3>⚛️ Preparing for the Post-Quantum Era</h3>
+
+    <p>
+      Today’s SSL/TLS encryption relies on algorithms like RSA and ECC, which are secure against classical computers.
+      However, with the rise of quantum computing, these encryption methods may become vulnerable.
+    </p>
+
+    <p>
+      Quantum algorithms such as Shor’s algorithm have the potential to break widely used cryptographic systems,
+      putting sensitive data at risk.
+    </p>
+
+    <p>
+      Organizations must begin transitioning toward <strong>post-quantum cryptography</strong> — encryption methods
+      designed to withstand attacks from quantum computers.
+    </p>
+
+    <p>
+      Early adoption ensures long-term data protection, compliance readiness, and trust with your customers.
+    </p>
+  </div>
+
+  <!-- CALL TO ACTION -->
+  <div class="cta">
+    <h3>🚨 Is Your Website Quantum-Ready?</h3>
+    <p>
+      Don’t wait until current encryption becomes obsolete. Protect your website with next-generation security solutions.
+    </p>
+
+    <button onclick="contact()">Get Protected Now</button>
+  </div>
+
+</div>
+
+<script>
+async function checkSSL() {
+  const domain = document.getElementById("domain").value;
+  const resultDiv = document.getElementById("result");
+
+  if (!domain) {
+    resultDiv.innerHTML = "Please enter a domain.";
+    return;
+  }
+
+  resultDiv.innerHTML = "Checking SSL...";
+
+  try {
+    const response = await fetch(`https://api.ssllabs.com/api/v3/analyze?host=${domain}`);
+    const data = await response.json();
+
+    if (data.status === "READY") {
+      const endpoint = data.endpoints[0];
+
+      resultDiv.innerHTML = `
+        <strong>Domain:</strong> ${domain}<br>
+        <strong>Status:</strong> Secure<br>
+        <strong>Grade:</strong> ${endpoint.grade || "N/A"}<br>
+        <strong>IP:</strong> ${endpoint.ipAddress}<br>
+      `;
+    } else {
+      resultDiv.innerHTML = "Analysis in progress... please try again in a few seconds.";
+    }
+
+  } catch (err) {
+    resultDiv.innerHTML = "Error checking SSL.";
+  }
+}
+
+function contact() {
+  alert("Contact us at: your-email@example.com");
+}
+</script>
 
 </body>
 </html>
