@@ -1,12 +1,19 @@
 export default async function handler(req, res) {
-  const { domain } = req.query;
+  const domain = req.query.domain;
 
   if (!domain) {
-    return res.status(400).json({ error: "Domain is required" });
+    return res.status(400).json({ error: "Domain required" });
   }
 
   try {
-    const response = await fetch(`https://api.ssllabs.com/api/v3/analyze?host=${domain}&all=done`);
+    const apiURL = `https://api.ssllabs.com/api/v3/analyze?host=${domain}`;
+
+    const response = await fetch(apiURL);
+
+    if (!response.ok) {
+      return res.status(500).json({ error: "SSL Labs API failed" });
+    }
+
     const data = await response.json();
 
     if (!data.endpoints || data.endpoints.length === 0) {
@@ -14,24 +21,25 @@ export default async function handler(req, res) {
     }
 
     const endpoint = data.endpoints[0];
-    const cert = endpoint.details?.cert;
 
-    if (!cert) {
-      return res.json({ status: "NO_CERT" });
-    }
+    // Some responses don't have details immediately
+    const cert = endpoint.details?.cert || {};
 
-    res.json({
-      domain,
-      grade: endpoint.grade,
-      ip: endpoint.ipAddress,
-      issuer: cert.issuerLabel,
-      valid_from: cert.notBefore,
-      valid_to: cert.notAfter,
+    return res.status(200).json({
+      domain: domain,
+      grade: endpoint.grade || "Pending",
+      ip: endpoint.ipAddress || "N/A",
+      issuer: cert.issuerLabel || "Fetching...",
+      valid_from: cert.notBefore || null,
+      valid_to: cert.notAfter || null,
       trusted: endpoint.grade ? true : false,
       chain: "Root CA → Intermediate CA → Server Certificate"
     });
 
-  } catch (err) {
-    res.status(500).json({ error: "SSL check failed" });
+  } catch (error) {
+    return res.status(500).json({
+      error: "Function crashed",
+      details: error.message
+    });
   }
-}api/check-ssl.js
+}
