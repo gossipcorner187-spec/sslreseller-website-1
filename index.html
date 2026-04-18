@@ -76,7 +76,7 @@
   <!-- SSL CHECKER -->
   <div class="card">
     <h2>🔐 SSL Security Checker</h2>
-    <p>Check SSL, certificate validity & trust chain</p>
+    <p>Check SSL certificate, validity & trust status</p>
 
     <input type="text" id="domain" placeholder="example.com">
     <br>
@@ -90,18 +90,18 @@
     <h3>⚛️ Post-Quantum Risk Awareness</h3>
     <p>
       Current SSL/TLS encryption (RSA, ECC) is secure today, but future quantum computers
-      could break these algorithms using advanced techniques like Shor’s algorithm.
+      could break these algorithms using Shor’s algorithm.
     </p>
     <p>
-      Organizations must start preparing for <strong>post-quantum cryptography</strong> to
-      ensure long-term data protection and compliance.
+      Organizations must begin adopting <strong>post-quantum cryptography</strong>
+      to ensure long-term protection and compliance.
     </p>
   </div>
 
   <!-- CTA -->
   <div class="cta">
-    <h3>🚨 Protect Your Website</h3>
-    <p>Check your readiness for next-generation encryption today.</p>
+    <h3>🚨 Is Your Website Quantum-Ready?</h3>
+    <p>Protect your website before encryption standards become obsolete.</p>
     <button onclick="contact()">Contact Us</button>
   </div>
 
@@ -117,50 +117,38 @@ async function checkSSL() {
     return;
   }
 
-  resultDiv.innerHTML = "Checking SSL (this may take a few seconds)...";
+  resultDiv.innerHTML = "Checking SSL...";
 
   try {
-    const apiURL = `https://api.allorigins.win/get?url=${encodeURIComponent(
-      `https://api.ssllabs.com/api/v3/analyze?host=${domain}&all=done`
-    )}`;
-
-    const response = await fetch(apiURL);
+    const response = await fetch(`https://sslcheckerproject1.vercel.app/api/check-ssl?domain=${domain}`);
     const data = await response.json();
-    const parsed = JSON.parse(data.contents);
 
-    if (!parsed.endpoints || parsed.endpoints.length === 0) {
-      resultDiv.innerHTML = "No SSL data found yet. Try again in a few seconds.";
+    if (data.status === "PENDING") {
+      resultDiv.innerHTML = "Scan in progress... please try again in a few seconds.";
       return;
     }
 
-    const endpoint = parsed.endpoints[0];
-    const cert = endpoint.details?.cert;
-
-    if (!cert) {
-      resultDiv.innerHTML = "Certificate details not available yet. Try again.";
+    if (data.error) {
+      resultDiv.innerHTML = "Error: " + data.error;
       return;
     }
-
-    const validFrom = new Date(cert.notBefore).toDateString();
-    const validTo = new Date(cert.notAfter).toDateString();
 
     resultDiv.innerHTML = `
-      <strong>Domain:</strong> ${domain}<br>
-      <strong>Grade:</strong> ${endpoint.grade || "N/A"}<br>
-      <strong>Issuer:</strong> ${cert.issuerLabel}<br>
-      <strong>Valid From:</strong> ${validFrom}<br>
-      <strong>Valid To:</strong> ${validTo}<br>
-      <strong>Status:</strong> ${endpoint.grade ? "✅ Trusted" : "⚠️ Unknown"}<br>
+      <strong>Domain:</strong> ${data.domain}<br>
+      <strong>Grade:</strong> ${data.grade || "N/A"}<br>
+      <strong>Issuer:</strong> ${data.issuer}<br>
+      <strong>Valid From:</strong> ${new Date(data.valid_from).toDateString()}<br>
+      <strong>Valid To:</strong> ${new Date(data.valid_to).toDateString()}<br>
+      <strong>Trust Status:</strong> ${data.trusted ? "✅ Trusted" : "❌ Not Trusted"}<br>
 
       <div class="chain">
         <strong>🔗 Chain of Trust</strong><br>
-        Root CA → Intermediate CA → Server Certificate<br>
-        <em>(Detailed chain requires backend validation)</em>
+        ${data.chain}
       </div>
     `;
 
-  } catch (error) {
-    resultDiv.innerHTML = "Error checking SSL. API may be blocked or busy.";
+  } catch (err) {
+    resultDiv.innerHTML = "Error connecting to backend.";
   }
 }
 
